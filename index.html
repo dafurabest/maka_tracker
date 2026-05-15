@@ -124,6 +124,22 @@
 
     input[type=file]{display:none}
     .no-data{color:var(--ink3);font-size:12px;font-style:italic}
+
+    .log-item{cursor:pointer;transition:border-color .15s}
+    .log-item:hover{border-color:var(--jade)}
+
+    .modal-wide{width:520px}
+    .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px}
+    .detail-row{display:flex;flex-direction:column;gap:3px}
+    .detail-row label{font-size:11px;font-weight:500;color:var(--ink3)}
+    .detail-row input,.detail-row select,.detail-row textarea{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-family:var(--font-ja);font-size:13px;color:var(--ink);width:100%}
+    .detail-row input:focus,.detail-row select:focus,.detail-row textarea:focus{outline:none;border-color:var(--jade);background:var(--surface)}
+    .detail-row textarea{resize:vertical;min-height:52px}
+    .detail-row input[readonly],.detail-row select[disabled]{opacity:.55;cursor:default}
+    .detail-section-title{font-size:10px;font-weight:500;letter-spacing:.06em;color:var(--jade);text-transform:uppercase;margin:10px 0 6px;border-top:1px solid var(--border);padding-top:8px}
+    .view-mode .detail-row input,.view-mode .detail-row select,.view-mode .detail-row textarea{border-color:transparent;background:var(--surface2);pointer-events:none}
+    .edit-indicator{font-size:11px;color:var(--jade);margin-left:6px;opacity:0;transition:.15s}
+    .edit-indicator.show{opacity:1}
   </style>
 </head>
 <body>
@@ -344,6 +360,93 @@
     <div class="modal-btns">
       <button class="btn-secondary" onclick="closeModal()">キャンセル</button>
       <button class="btn-danger" onclick="confirmDelete()">削除する</button>
+    </div>
+  </div>
+</div>
+
+<!-- Detail / Edit Modal -->
+<div class="modal-bg" id="detail-modal" onclick="onDetailBgClick(event)">
+  <div class="modal modal-wide" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <h3 style="font-family:var(--font-title);color:var(--jade-dark)">対局詳細</h3>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="edit-indicator" id="edit-indicator">編集中</span>
+        <button class="btn-secondary" id="detail-edit-btn" onclick="toggleEditMode()" style="padding:5px 12px;font-size:12px">編集</button>
+        <button onclick="document.getElementById('detail-modal').classList.remove('open')" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--ink3);padding:0 2px">×</button>
+      </div>
+    </div>
+
+    <div id="detail-form" class="view-mode">
+      <div class="detail-grid">
+        <div class="detail-row">
+          <label>日付</label>
+          <input type="date" id="d-date">
+        </div>
+        <div class="detail-row">
+          <label>時刻</label>
+          <input type="time" id="d-time">
+        </div>
+        <div class="detail-row">
+          <label>戦型</label>
+          <select id="d-type">
+            <option>東風戦</option><option>半荘戦</option>
+          </select>
+        </div>
+        <div class="detail-row">
+          <label>対局ルーム</label>
+          <select id="d-room">
+            <option>銅の間</option><option>銀の間</option><option>金の間</option><option>玉の間</option><option>王座の間</option>
+          </select>
+        </div>
+        <div class="detail-row">
+          <label>順位</label>
+          <select id="d-rank">
+            <option>1</option><option>2</option><option>3</option><option>4</option>
+          </select>
+        </div>
+        <div class="detail-row">
+          <label>MAKA評価</label>
+          <select id="d-maka">
+            <option>S+</option><option>S</option><option>S-</option>
+            <option>A+</option><option>A</option><option>A-</option>
+            <option>B+</option><option>B</option><option>B-</option>
+            <option>C+</option><option>C</option><option>C-</option>
+            <option>D+</option><option>D</option><option>D-</option>
+            <option>E</option>
+          </select>
+        </div>
+      </div>
+      <div class="detail-section-title">任意入力</div>
+      <div class="detail-grid">
+        <div class="detail-row">
+          <label>最終持ち点</label>
+          <input type="number" id="d-pts" placeholder="—">
+        </div>
+        <div class="detail-row">
+          <label>和了回数</label>
+          <input type="number" id="d-win" min="0" placeholder="—">
+        </div>
+        <div class="detail-row">
+          <label>放銃回数</label>
+          <input type="number" id="d-deal" min="0" placeholder="—">
+        </div>
+        <div class="detail-row">
+          <label>牌譜URL</label>
+          <input type="url" id="d-url" placeholder="—">
+        </div>
+        <div class="detail-row" style="grid-column:1/-1">
+          <label>メモ</label>
+          <textarea id="d-memo" placeholder="—"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div id="detail-alert" style="margin-top:8px"></div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;align-items:center">
+      <button class="btn-danger" id="detail-delete-btn" onclick="deleteFromDetail()" style="margin-right:auto;font-size:12px">この記録を削除</button>
+      <button class="btn-secondary" onclick="document.getElementById('detail-modal').classList.remove('open')">閉じる</button>
+      <button class="btn-primary" id="detail-save-btn" onclick="saveDetail()" style="display:none">保存する</button>
     </div>
   </div>
 </div>
@@ -634,7 +737,7 @@ function renderLog() {
   if (!records.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
   list.innerHTML = records.map(r => `
-    <div class="log-item">
+    <div class="log-item" onclick="openDetail('${r.id}')">
       <div>
         <div style="font-size:12px;font-weight:500;color:var(--ink2)">${r.date} ${r.time}</div>
         <div style="display:flex;gap:6px;margin-top:3px;flex-wrap:wrap">
@@ -649,13 +752,127 @@ function renderLog() {
         ${r.memo ? `<span style="font-size:11px;color:var(--ink3);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.memo}">💬 ${r.memo}</span>` : ''}
       </div>
       <div>
-        ${r.url ? `<a href="${r.url}" target="_blank" rel="noopener" style="font-size:11px;color:var(--jade)">牌譜</a>` : ''}
+        ${r.url ? `<a href="${r.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:11px;color:var(--jade)">牌譜</a>` : ''}
       </div>
-      <div>
+      <div onclick="event.stopPropagation()">
         <button class="btn-danger" onclick="askDelete('${r.id}','${r.date} ${r.time} ${r.maka}')">削除</button>
       </div>
     </div>
   `).join('');
+}
+
+let detailId = null;
+let isEditMode = false;
+
+function openDetail(id) {
+  const r = records.find(x => x.id === id);
+  if (!r) return;
+  detailId = id;
+  isEditMode = false;
+
+  document.getElementById('d-date').value = r.date;
+  document.getElementById('d-time').value = r.time;
+  document.getElementById('d-type').value = r.type;
+  document.getElementById('d-room').value = r.room;
+  document.getElementById('d-rank').value = String(r.rank);
+  document.getElementById('d-maka').value = r.maka;
+  document.getElementById('d-pts').value = r.pts !== null ? r.pts : '';
+  document.getElementById('d-win').value = r.win !== null ? r.win : '';
+  document.getElementById('d-deal').value = r.deal !== null ? r.deal : '';
+  document.getElementById('d-url').value = r.url || '';
+  document.getElementById('d-memo').value = r.memo || '';
+
+  applyDetailViewMode();
+  document.getElementById('detail-alert').innerHTML = '';
+  document.getElementById('detail-modal').classList.add('open');
+}
+
+function applyDetailViewMode() {
+  const form = document.getElementById('detail-form');
+  const saveBtn = document.getElementById('detail-save-btn');
+  const editBtn = document.getElementById('detail-edit-btn');
+  const indicator = document.getElementById('edit-indicator');
+  if (isEditMode) {
+    form.classList.remove('view-mode');
+    saveBtn.style.display = 'inline-block';
+    editBtn.textContent = 'キャンセル';
+    indicator.classList.add('show');
+    // enable all fields
+    form.querySelectorAll('input,select,textarea').forEach(el => {
+      el.removeAttribute('disabled'); el.removeAttribute('readonly');
+    });
+  } else {
+    form.classList.add('view-mode');
+    saveBtn.style.display = 'none';
+    editBtn.textContent = '編集';
+    indicator.classList.remove('show');
+    // disable all fields
+    form.querySelectorAll('input,select,textarea').forEach(el => {
+      el.setAttribute('disabled', true);
+    });
+  }
+}
+
+function toggleEditMode() {
+  isEditMode = !isEditMode;
+  if (!isEditMode) {
+    // キャンセル時は元データを再描画
+    openDetail(detailId);
+    return;
+  }
+  applyDetailViewMode();
+}
+
+function saveDetail() {
+  const idx = records.findIndex(x => x.id === detailId);
+  if (idx === -1) return;
+
+  const date = document.getElementById('d-date').value;
+  const time = document.getElementById('d-time').value;
+  const type = document.getElementById('d-type').value;
+  const room = document.getElementById('d-room').value;
+  const rank = document.getElementById('d-rank').value;
+  const maka = document.getElementById('d-maka').value;
+  if (!date || !time || !type || !room || !rank || !maka) {
+    showAlert(document.getElementById('detail-alert'), '必須項目をすべて入力してください', 'error');
+    return;
+  }
+  const pts = document.getElementById('d-pts').value;
+  const win = document.getElementById('d-win').value;
+  const deal = document.getElementById('d-deal').value;
+  const url = document.getElementById('d-url').value;
+  const memo = document.getElementById('d-memo').value;
+
+  records[idx] = {
+    ...records[idx],
+    date, time, type, room,
+    rank: parseInt(rank),
+    maka,
+    pts: pts !== '' ? parseInt(pts) : null,
+    win: win !== '' ? parseInt(win) : null,
+    deal: deal !== '' ? parseInt(deal) : null,
+    url: url || null,
+    memo: memo || null
+  };
+  records.sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+  save();
+  isEditMode = false;
+  applyDetailViewMode();
+  showAlert(document.getElementById('detail-alert'), '保存しました', 'success');
+  renderLog();
+}
+
+function deleteFromDetail() {
+  const r = records.find(x => x.id === detailId);
+  if (!r) return;
+  document.getElementById('detail-modal').classList.remove('open');
+  askDelete(r.id, `${r.date} ${r.time} ${r.maka}`);
+}
+
+function onDetailBgClick(e) {
+  if (e.target === document.getElementById('detail-modal')) {
+    document.getElementById('detail-modal').classList.remove('open');
+  }
 }
 
 function renderIO() {
