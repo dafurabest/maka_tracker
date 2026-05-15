@@ -2,7 +2,7 @@
 
 雀魂（じゃんたま / Mahjong Soul）のMAKA評価と対局順位を記録・統計分析するブラウザアプリです。
 
-**デモ:** [Cloudflare Pages URL をここに記入]
+**デモ:** [https://maka-tracker.pages.dev/]
 
 ---
 
