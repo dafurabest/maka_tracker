@@ -228,7 +228,7 @@
       </div>
       <div class="form-row">
         <label>牌譜URL</label>
-        <input type="url" id="f-url" placeholder="https://mahjongsoul.game.yo-star.com/...">
+        <input type="text" id="f-url" placeholder="URLまたは「雀魂牌譜: https://...」形式で貼り付け可">
       </div>
       <div class="form-row" style="grid-column:1/-1">
         <label>メモ</label>
@@ -432,7 +432,7 @@
         </div>
         <div class="detail-row">
           <label>牌譜URL</label>
-          <input type="url" id="d-url" placeholder="—">
+          <input type="text" id="d-url" placeholder="—">
         </div>
         <div class="detail-row" style="grid-column:1/-1">
           <label>メモ</label>
@@ -464,6 +464,13 @@ const MAKA_COLORS = {
   'E':'#7f8c8d'
 };
 const ROOMS = ['銅の間','銀の間','金の間','玉の間','王座の間'];
+
+// 「雀魂牌譜: https://...」形式も含め、文字列中のURLを抽出する
+function extractUrl(raw) {
+  if (!raw) return null;
+  const match = raw.match(/https?:\/\/\S+/);
+  return match ? match[0].replace(/[）)\]。、.,]+$/, '') : null;
+}
 
 let records = [];
 let filters = { type: 'all', room: 'all' };
@@ -519,7 +526,7 @@ function saveEntry() {
   const pts = document.getElementById('f-pts').value;
   const win = document.getElementById('f-win').value;
   const deal = document.getElementById('f-deal').value;
-  const url = document.getElementById('f-url').value;
+  const url = extractUrl(document.getElementById('f-url').value);
   const memo = document.getElementById('f-memo').value;
   const entry = {
     id: Date.now() + '_' + Math.random().toString(36).slice(2),
@@ -840,7 +847,7 @@ function saveDetail() {
   const pts = document.getElementById('d-pts').value;
   const win = document.getElementById('d-win').value;
   const deal = document.getElementById('d-deal').value;
-  const url = document.getElementById('d-url').value;
+  const url = extractUrl(document.getElementById('d-url').value);
   const memo = document.getElementById('d-memo').value;
 
   records[idx] = {
