@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MAKA評価管理 | 雀魂成績トラッカー</title>
+  <meta name="description" content="雀魂のMAKA評価と対局順位を記録・統計分析するブラウザアプリ">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@400;500;700&family=Noto+Sans+JP:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --jade:#1D9E75;--jade-dark:#0F6E56;--jade-light:#E1F5EEaa;
+      --gold:#BA7517;--gold-light:#FAEEDA;
+      --ink:#1a1a1a;--ink2:#444;--ink3:#888;
+      --surface:#fff;--surface2:#f7f9f8;--surface3:#edf5f1;
+      --border:#c8ddd6;--radius:8px;
+      --font-ja:'Noto Sans JP',sans-serif;
+      --font-title:'Kaisei Decol',serif;
+    }
+    @media(prefers-color-scheme:dark){
+      :root{
+        --ink:#e8f0ec;--ink2:#b0c4bc;--ink3:#7a9a90;
+        --surface:#0d1a16;--surface2:#142019;--surface3:#1a2e24;
+        --border:#2a4a3a;--jade-light:#0a2a1e44;--gold-light:#1a100044;
+      }
+    }
+    body{font-family:var(--font-ja);background:var(--surface2);color:var(--ink);font-size:14px;line-height:1.6;min-height:100vh}
+    h1{font-family:var(--font-title);font-size:22px;font-weight:700}
+    h2{font-family:var(--font-title);font-size:17px;font-weight:500;color:var(--jade-dark);margin-bottom:12px}
+    h3{font-size:13px;font-weight:500;color:var(--ink2);margin-bottom:8px}
+
+    .app{max-width:900px;margin:0 auto;background:var(--surface);min-height:100vh;box-shadow:0 0 40px rgba(0,0,0,.08)}
+    .header{background:linear-gradient(135deg,var(--jade-dark),var(--jade));padding:16px 20px;display:flex;align-items:center;gap:12px}
+    .header h1{color:#fff;font-size:20px}
+    .header-sub{color:rgba(255,255,255,.75);font-size:12px;margin-top:2px}
+    .tile{font-size:28px;background:rgba(255,255,255,.15);border-radius:6px;width:40px;height:40px;display:flex;align-items:center;justify-content:center}
+
+    .nav{display:flex;border-bottom:2px solid var(--border);background:var(--surface2);overflow-x:auto}
+    .nav-btn{padding:10px 16px;font-family:var(--font-ja);font-size:13px;font-weight:500;background:none;border:none;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:.15s;white-space:nowrap}
+    .nav-btn.active{color:var(--jade);border-bottom-color:var(--jade)}
+    .nav-btn:hover{color:var(--jade-dark)}
+
+    .section{display:none;padding:16px}
+    .section.active{display:block}
+
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media(max-width:500px){.form-grid{grid-template-columns:1fr}}
+    .form-row{display:flex;flex-direction:column;gap:4px}
+    .form-row label{font-size:12px;font-weight:500;color:var(--ink2)}
+    .form-row input,.form-row select,.form-row textarea{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;font-family:var(--font-ja);font-size:13px;color:var(--ink);width:100%}
+    .form-row select{cursor:pointer}
+    .form-row textarea{resize:vertical;min-height:56px}
+    .req{color:var(--jade)}
+    .opt-label{font-size:11px;color:var(--ink3)}
+    .form-section-title{font-size:11px;font-weight:500;letter-spacing:.06em;color:var(--jade);text-transform:uppercase;margin:12px 0 6px;border-top:1px solid var(--border);padding-top:10px}
+
+    .btn-primary{background:var(--jade);color:#fff;border:none;border-radius:var(--radius);padding:9px 20px;font-family:var(--font-ja);font-size:14px;font-weight:500;cursor:pointer;transition:.15s}
+    .btn-primary:hover{background:var(--jade-dark)}
+    .btn-secondary{background:none;color:var(--jade-dark);border:1px solid var(--jade);border-radius:var(--radius);padding:7px 14px;font-family:var(--font-ja);font-size:13px;cursor:pointer;transition:.15s}
+    .btn-secondary:hover{background:var(--jade-light)}
+    .btn-danger{background:none;color:#c0392b;border:1px solid #e74c3c;border-radius:var(--radius);padding:5px 10px;font-family:var(--font-ja);font-size:12px;cursor:pointer;transition:.15s}
+    .btn-danger:hover{background:#fdecea}
+
+    .maka{display:inline-flex;align-items:center;justify-content:center;width:40px;height:24px;border-radius:4px;font-size:12px;font-weight:700;font-family:'Kaisei Decol',serif}
+    .maka-S{background:#1D9E75;color:#fff}
+    .maka-A{background:#378ADD;color:#fff}
+    .maka-B{background:#8B5CF6;color:#fff}
+    .maka-C{background:#F59E0B;color:#fff}
+    .maka-D{background:#EF4444;color:#fff}
+    .maka-E{background:#6B7280;color:#fff}
+
+    .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:14px}
+    .stat-card{background:var(--surface2);border-radius:var(--radius);padding:10px 12px;text-align:center}
+    .stat-val{font-size:22px;font-weight:700;color:var(--jade-dark);font-family:var(--font-title)}
+    .stat-label{font-size:11px;color:var(--ink3);margin-top:2px}
+
+    .filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+    .filter-chip{padding:4px 12px;border:1px solid var(--border);border-radius:20px;font-size:12px;cursor:pointer;background:var(--surface);color:var(--ink2);transition:.12s;white-space:nowrap}
+    .filter-chip.active{background:var(--jade);color:#fff;border-color:var(--jade)}
+    .filter-label{font-size:11px;color:var(--ink3);font-weight:500}
+
+    .chart-wrap{position:relative;width:100%;margin-bottom:14px}
+
+    .corr-table{width:100%;border-collapse:collapse;font-size:12px}
+    .corr-table th{background:var(--surface3);color:var(--jade-dark);font-weight:500;padding:6px 10px;text-align:center;border:1px solid var(--border)}
+    .corr-table td{padding:5px 8px;text-align:center;border:1px solid var(--border)}
+    .corr-key{text-align:left!important;font-weight:500;color:var(--ink2)}
+
+    .log-list{display:flex;flex-direction:column;gap:6px}
+    .log-item{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center}
+    @media(max-width:600px){.log-item{grid-template-columns:1fr 1fr;gap:4px}}
+
+    .io-section{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+    .tab-content{background:var(--surface2);border-radius:var(--radius);padding:12px;margin-bottom:12px}
+
+    .empty{text-align:center;padding:32px;color:var(--ink3);font-size:13px}
+    .empty-icon{font-size:40px;margin-bottom:8px}
+
+    .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center}
+    .modal-bg.open{display:flex}
+    .modal{background:var(--surface);border-radius:12px;padding:20px;width:340px;max-width:95vw;border:1px solid var(--border)}
+    .modal h3{font-family:var(--font-title);color:var(--jade-dark);margin-bottom:12px}
+    .modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+
+    .rank-badge{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:700}
+    .rank-1{background:#FFD700;color:#7a5200}
+    .rank-2{background:#C0C0C0;color:#444}
+    .rank-3{background:#CD7F32;color:#fff}
+    .rank-4{background:var(--surface3);color:var(--ink2)}
+
+    .room-badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:500}
+    .room-銅{background:#CD7F3222;color:#8B5E3C}
+    .room-銀{background:#C0C0C022;color:#666}
+    .room-金{background:#FFD70022;color:#7a5200}
+    .room-玉{background:#1D9E7522;color:#0F6E56}
+    .room-王{background:#8B5CF622;color:#5B21B6}
+
+    .alert{padding:8px 12px;border-radius:var(--radius);font-size:12px;margin-bottom:10px}
+    .alert-success{background:#e1f5ee;color:#0F6E56;border:1px solid #9FE1CB}
+    .alert-error{background:#fdecea;color:#c0392b;border:1px solid #f5c6c6}
+
+    input[type=file]{display:none}
+    .no-data{color:var(--ink3);font-size:12px;font-style:italic}
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="tile">🀄</div>
+    <div>
+      <h1>MAKA評価管理</h1>
+      <div class="header-sub">雀魂 成績統計トラッカー</div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="nav-btn active" onclick="showTab('input')">✏️ 入力</button>
+    <button class="nav-btn" onclick="showTab('stats')">📊 統計</button>
+    <button class="nav-btn" onclick="showTab('log')">📋 対局ログ</button>
+    <button class="nav-btn" onclick="showTab('io')">💾 データ</button>
+  </div>
+
+  <!-- 入力 -->
+  <div id="tab-input" class="section active">
+    <h2>対局記録入力</h2>
+    <div id="form-alert"></div>
+    <div class="form-grid">
+      <div class="form-row">
+        <label>日付 <span class="req">*</span></label>
+        <input type="date" id="f-date">
+      </div>
+      <div class="form-row">
+        <label>時刻 <span class="req">*</span></label>
+        <input type="time" id="f-time">
+      </div>
+      <div class="form-row">
+        <label>戦型 <span class="req">*</span></label>
+        <select id="f-type">
+          <option value="">選択してください</option>
+          <option>東風戦</option>
+          <option>半荘戦</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>対局ルーム <span class="req">*</span></label>
+        <select id="f-room">
+          <option value="">選択してください</option>
+          <option>銅の間</option>
+          <option>銀の間</option>
+          <option>金の間</option>
+          <option>玉の間</option>
+          <option>王座の間</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>順位 <span class="req">*</span></label>
+        <select id="f-rank">
+          <option value="">選択してください</option>
+          <option>1</option><option>2</option><option>3</option><option>4</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>MAKA評価 <span class="req">*</span></label>
+        <select id="f-maka">
+          <option value="">選択してください</option>
+          <option>S+</option><option>S</option><option>S-</option>
+          <option>A+</option><option>A</option><option>A-</option>
+          <option>B+</option><option>B</option><option>B-</option>
+          <option>C+</option><option>C</option><option>C-</option>
+          <option>D+</option><option>D</option><option>D-</option>
+          <option>E</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-section-title">任意入力 <span class="opt-label">（入力するとより詳細な分析が可能になります）</span></div>
+    <div class="form-grid">
+      <div class="form-row">
+        <label>最終持ち点（素点）</label>
+        <input type="number" id="f-pts" placeholder="例: 32400">
+      </div>
+      <div class="form-row">
+        <label>和了回数</label>
+        <input type="number" id="f-win" min="0" placeholder="例: 2">
+      </div>
+      <div class="form-row">
+        <label>放銃回数</label>
+        <input type="number" id="f-deal" min="0" placeholder="例: 1">
+      </div>
+      <div class="form-row">
+        <label>牌譜URL</label>
+        <input type="url" id="f-url" placeholder="https://mahjongsoul.game.yo-star.com/...">
+      </div>
+      <div class="form-row" style="grid-column:1/-1">
+        <label>メモ</label>
+        <textarea id="f-memo" placeholder="ひとことメモ（任意）"></textarea>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn-primary" onclick="saveEntry()">記録する</button>
+      <button class="btn-secondary" onclick="clearForm()">クリア</button>
+    </div>
+  </div>
+
+  <!-- 統計 -->
+  <div id="tab-stats" class="section">
+    <h2>統計分析</h2>
+    <div class="filter-bar">
+      <span class="filter-label">戦型:</span>
+      <button class="filter-chip active" data-filter-type="all" onclick="setFilter('type','all',this)">すべて</button>
+      <button class="filter-chip" data-filter-type="東風戦" onclick="setFilter('type','東風戦',this)">東風戦</button>
+      <button class="filter-chip" data-filter-type="半荘戦" onclick="setFilter('type','半荘戦',this)">半荘戦</button>
+      <span class="filter-label" style="margin-left:8px">ルーム:</span>
+      <button class="filter-chip active" data-filter-room="all" onclick="setFilter('room','all',this)">すべて</button>
+      <button class="filter-chip" data-filter-room="銅の間" onclick="setFilter('room','銅の間',this)">銅</button>
+      <button class="filter-chip" data-filter-room="銀の間" onclick="setFilter('room','銀の間',this)">銀</button>
+      <button class="filter-chip" data-filter-room="金の間" onclick="setFilter('room','金の間',this)">金</button>
+      <button class="filter-chip" data-filter-room="玉の間" onclick="setFilter('room','玉の間',this)">玉</button>
+      <button class="filter-chip" data-filter-room="王座の間" onclick="setFilter('room','王座の間',this)">王座</button>
+    </div>
+
+    <div id="stats-empty" class="empty" style="display:none">
+      <div class="empty-icon">🀄</div>
+      <div>まだデータがありません。対局を記録してください。</div>
+    </div>
+
+    <div id="stats-body">
+      <div class="stat-grid" id="stat-cards"></div>
+
+      <h3>MAKA評価分布（帯グラフ）</h3>
+      <div id="dist-legend" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px"></div>
+      <div class="chart-wrap" style="height:60px"><canvas id="chart-dist" role="img" aria-label="MAKA評価の帯グラフ">MAKA評価分布</canvas></div>
+
+      <h3 style="margin-top:14px">順位別 MAKA評価分布</h3>
+      <div class="chart-wrap" style="height:200px"><canvas id="chart-rank-dist" role="img" aria-label="順位別MAKA評価帯グラフ">順位別MAKA評価分布</canvas></div>
+
+      <h3 style="margin-top:14px">MAKA評価ごとの順位統計</h3>
+      <div style="overflow-x:auto">
+        <table class="corr-table" id="tbl-maka-rank">
+          <thead><tr><th>MAKA</th><th>件数</th><th>平均順位</th><th>中央値</th><th>最頻値</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <h3 style="margin-top:14px">順位ごとのMAKA評価統計</h3>
+      <div style="overflow-x:auto">
+        <table class="corr-table" id="tbl-rank-maka">
+          <thead><tr><th>順位</th><th>件数</th><th>平均MAKA</th><th>中央値</th><th>最頻値</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <h3 style="margin-top:14px">ルームランク別統計</h3>
+      <div style="overflow-x:auto">
+        <table class="corr-table" id="tbl-room">
+          <thead><tr><th>ルーム</th><th>件数</th><th>平均MAKA</th><th>平均順位</th><th>最頻MAKA</th><th>最頻順位</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div id="optional-stats" style="display:none">
+        <h3 style="margin-top:14px">MAKA評価ごとの平均データ（任意入力あり）</h3>
+        <div style="overflow-x:auto">
+          <table class="corr-table" id="tbl-optional">
+            <thead><tr><th>MAKA</th><th>平均持ち点</th><th>平均和了回数</th><th>平均放銃回数</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 対局ログ -->
+  <div id="tab-log" class="section">
+    <h2>対局ログ</h2>
+    <div id="log-empty" class="empty" style="display:none">
+      <div class="empty-icon">📋</div>
+      <div>まだ記録がありません。</div>
+    </div>
+    <div class="log-list" id="log-list"></div>
+  </div>
+
+  <!-- データ管理 -->
+  <div id="tab-io" class="section">
+    <h2>データ管理</h2>
+    <div class="io-section">
+      <button class="btn-primary" onclick="exportData()">📥 JSONエクスポート</button>
+      <button class="btn-secondary" onclick="document.getElementById('import-file').click()">📤 JSONインポート</button>
+      <input type="file" id="import-file" accept=".json" onchange="handleImport(event)">
+    </div>
+    <div id="io-alert"></div>
+    <div class="tab-content">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:13px;font-weight:500;color:var(--ink2)">保存データ概要</span>
+        <button class="btn-danger" onclick="confirmClearAll()">全データ削除</button>
+      </div>
+      <div id="data-summary" style="font-size:12px;color:var(--ink2)"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal-bg" id="import-modal">
+  <div class="modal">
+    <h3>インポート方法を選択</h3>
+    <p style="font-size:13px;color:var(--ink2);margin-bottom:12px">読み込んだデータをどのように処理しますか？</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn-secondary" onclick="doImport('append')">追記（既存データに追加）</button>
+      <button class="btn-danger" onclick="doImport('overwrite')">上書き（既存データを削除して置換）</button>
+    </div>
+    <div class="modal-btns"><button class="btn-secondary" onclick="closeModal()">キャンセル</button></div>
+  </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal-bg" id="delete-modal">
+  <div class="modal">
+    <h3>対局記録を削除</h3>
+    <p id="delete-desc" style="font-size:13px;color:var(--ink2);margin-bottom:12px"></p>
+    <div class="modal-btns">
+      <button class="btn-secondary" onclick="closeModal()">キャンセル</button>
+      <button class="btn-danger" onclick="confirmDelete()">削除する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const MAKA_GRADES = ['S+','S','S-','A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','E'];
+const MAKA_VAL = Object.fromEntries(MAKA_GRADES.map((g, i) => [g, i]));
+const MAKA_FROM_VAL = v => MAKA_GRADES[Math.round(v)] || '?';
+const MAKA_COLORS = {
+  'S+':'#1D9E75','S':'#27ae60','S-':'#2ecc71',
+  'A+':'#1a8fc4','A':'#2980b9','A-':'#5dade2',
+  'B+':'#7d3c98','B':'#8e44ad','B-':'#a569bd',
+  'C+':'#d68910','C':'#e67e22','C-':'#f0a500',
+  'D+':'#c0392b','D':'#e74c3c','D-':'#f1948a',
+  'E':'#7f8c8d'
+};
+const ROOMS = ['銅の間','銀の間','金の間','玉の間','王座の間'];
+
+let records = [];
+let filters = { type: 'all', room: 'all' };
+let importData = null;
+let deleteId = null;
+let charts = {};
+
+function load() {
+  try { records = JSON.parse(localStorage.getItem('makaRecords') || '[]'); } catch { records = []; }
+  const now = new Date();
+  document.getElementById('f-date').value = now.toISOString().slice(0, 10);
+  document.getElementById('f-time').value = now.toTimeString().slice(0, 5);
+  refresh();
+}
+
+function save() {
+  localStorage.setItem('makaRecords', JSON.stringify(records));
+}
+
+function showTab(t) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + t).classList.add('active');
+  const idx = ['input','stats','log','io'].indexOf(t);
+  document.querySelectorAll('.nav-btn')[idx].classList.add('active');
+  if (t === 'stats') renderStats();
+  if (t === 'log') renderLog();
+  if (t === 'io') renderIO();
+}
+
+function showAlert(el, msg, type) {
+  el.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+  setTimeout(() => el.innerHTML = '', 3500);
+}
+
+function clearForm() {
+  ['f-type','f-room','f-rank','f-maka','f-pts','f-win','f-deal','f-url','f-memo'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+}
+
+function saveEntry() {
+  const date = document.getElementById('f-date').value;
+  const time = document.getElementById('f-time').value;
+  const type = document.getElementById('f-type').value;
+  const room = document.getElementById('f-room').value;
+  const rank = document.getElementById('f-rank').value;
+  const maka = document.getElementById('f-maka').value;
+  if (!date || !time || !type || !room || !rank || !maka) {
+    showAlert(document.getElementById('form-alert'), '必須項目をすべて入力してください', 'error');
+    return;
+  }
+  const pts = document.getElementById('f-pts').value;
+  const win = document.getElementById('f-win').value;
+  const deal = document.getElementById('f-deal').value;
+  const url = document.getElementById('f-url').value;
+  const memo = document.getElementById('f-memo').value;
+  const entry = {
+    id: Date.now() + '_' + Math.random().toString(36).slice(2),
+    date, time, type, room,
+    rank: parseInt(rank),
+    maka,
+    pts: pts !== '' ? parseInt(pts) : null,
+    win: win !== '' ? parseInt(win) : null,
+    deal: deal !== '' ? parseInt(deal) : null,
+    url: url || null,
+    memo: memo || null
+  };
+  records.push(entry);
+  records.sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+  save();
+  showAlert(document.getElementById('form-alert'), '対局を記録しました！', 'success');
+  clearForm();
+  const now = new Date();
+  document.getElementById('f-date').value = now.toISOString().slice(0, 10);
+  document.getElementById('f-time').value = now.toTimeString().slice(0, 5);
+}
+
+function setFilter(key, val, btn) {
+  filters[key] = val;
+  document.querySelectorAll(`[data-filter-${key}]`).forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderStats();
+}
+
+function getFiltered() {
+  return records.filter(r => {
+    if (filters.type !== 'all' && r.type !== filters.type) return false;
+    if (filters.room !== 'all' && r.room !== filters.room) return false;
+    return true;
+  });
+}
+
+function avg(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null; }
+function median(arr) {
+  if (!arr.length) return null;
+  const s = [...arr].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+function mode(arr) {
+  if (!arr.length) return [];
+  const freq = {};
+  arr.forEach(v => { freq[v] = (freq[v] || 0) + 1; });
+  const max = Math.max(...Object.values(freq));
+  return Object.keys(freq).filter(k => freq[k] === max).map(Number);
+}
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+function renderStats() {
+  const data = getFiltered();
+  const sb = document.getElementById('stats-body');
+  const se = document.getElementById('stats-empty');
+  if (!data.length) { sb.style.display = 'none'; se.style.display = 'block'; return; }
+  sb.style.display = 'block'; se.style.display = 'none';
+
+  const ranks = data.map(r => r.rank);
+  const makaVals = data.map(r => MAKA_VAL[r.maka]);
+  const avgRank = avg(ranks);
+  const avgMaka = avg(makaVals);
+  const first = data.filter(r => r.rank === 1).length;
+  document.getElementById('stat-cards').innerHTML = `
+    <div class="stat-card"><div class="stat-val">${data.length}</div><div class="stat-label">総対局数</div></div>
+    <div class="stat-card"><div class="stat-val">${avgRank !== null ? avgRank.toFixed(2) : '—'}</div><div class="stat-label">平均順位</div></div>
+    <div class="stat-card"><div class="stat-val">${avgMaka !== null ? MAKA_FROM_VAL(avgMaka) : '—'}</div><div class="stat-label">平均MAKA</div></div>
+    <div class="stat-card"><div class="stat-val">${Math.round(first / data.length * 100)}%</div><div class="stat-label">1位率</div></div>
+  `;
+
+  const gradeCounts = {};
+  MAKA_GRADES.forEach(g => { gradeCounts[g] = 0; });
+  data.forEach(r => { gradeCounts[r.maka] = (gradeCounts[r.maka] || 0) + 1; });
+  const gradesUsed = MAKA_GRADES.filter(g => gradeCounts[g] > 0);
+  const total = data.length;
+
+  document.getElementById('dist-legend').innerHTML = gradesUsed.map(g =>
+    `<span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--ink2)">
+      <span style="width:10px;height:10px;border-radius:2px;background:${MAKA_COLORS[g]};display:inline-block"></span>
+      ${g} ${Math.round(gradeCounts[g] / total * 100)}%
+    </span>`
+  ).join('');
+
+  destroyChart('dist');
+  charts['dist'] = new Chart(document.getElementById('chart-dist'), {
+    type: 'bar',
+    data: {
+      labels: [''],
+      datasets: gradesUsed.map(g => ({
+        label: g,
+        data: [gradeCounts[g] / total * 100],
+        backgroundColor: MAKA_COLORS[g],
+        stack: 's'
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.raw.toFixed(1)}%` } } },
+      scales: { x: { stacked: true, max: 100, ticks: { callback: v => v + '%' }, grid: { display: false } }, y: { stacked: true, display: false } }
+    }
+  });
+
+  destroyChart('rankdist');
+  const rankDatasets = MAKA_GRADES.filter(g =>
+    [1,2,3,4].some(rk => data.filter(r => r.rank === rk && r.maka === g).length > 0)
+  ).map(g => ({
+    label: g,
+    data: [1,2,3,4].map(rk => {
+      const sub = data.filter(r => r.rank === rk);
+      return sub.length ? sub.filter(r => r.maka === g).length / sub.length * 100 : 0;
+    }),
+    backgroundColor: MAKA_COLORS[g],
+    stack: 's'
+  }));
+  charts['rankdist'] = new Chart(document.getElementById('chart-rank-dist'), {
+    type: 'bar',
+    data: { labels: ['1位','2位','3位','4位'], datasets: rankDatasets },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.raw.toFixed(1)}%` } } },
+      scales: { x: { stacked: true, max: 100, ticks: { callback: v => v + '%' } }, y: { stacked: true } }
+    }
+  });
+
+  // MAKA→順位テーブル
+  const tbody1 = document.querySelector('#tbl-maka-rank tbody');
+  tbody1.innerHTML = '';
+  MAKA_GRADES.forEach(g => {
+    const sub = data.filter(r => r.maka === g);
+    if (!sub.length) return;
+    const rv = sub.map(r => r.rank);
+    tbody1.innerHTML += `<tr>
+      <td class="corr-key"><span class="maka maka-${g[0]}">${g}</span></td>
+      <td>${sub.length}</td>
+      <td>${avg(rv) !== null ? avg(rv).toFixed(2) : '—'}</td>
+      <td>${median(rv) !== null ? median(rv).toFixed(1) : '—'}</td>
+      <td>${mode(rv).join('、')}</td>
+    </tr>`;
+  });
+  if (!tbody1.innerHTML) tbody1.innerHTML = '<tr><td colspan="5" class="no-data" style="padding:8px;text-align:center">データなし</td></tr>';
+
+  // 順位→MAKAテーブル
+  const tbody2 = document.querySelector('#tbl-rank-maka tbody');
+  tbody2.innerHTML = '';
+  [1,2,3,4].forEach(rk => {
+    const sub = data.filter(r => r.rank === rk);
+    if (!sub.length) return;
+    const mv = sub.map(r => MAKA_VAL[r.maka]);
+    const avgM = avg(mv);
+    const medM = median(mv);
+    const moMStr = mode(mv).map(v => `<span class="maka maka-${MAKA_FROM_VAL(v)[0]}">${MAKA_FROM_VAL(v)}</span>`).join(' ');
+    tbody2.innerHTML += `<tr>
+      <td class="corr-key"><span class="rank-badge rank-${rk}">${rk}</span></td>
+      <td>${sub.length}</td>
+      <td>${avgM !== null ? MAKA_FROM_VAL(avgM) + ' (' + avgM.toFixed(2) + ')' : '—'}</td>
+      <td>${medM !== null ? MAKA_FROM_VAL(medM) : '—'}</td>
+      <td>${moMStr}</td>
+    </tr>`;
+  });
+  if (!tbody2.innerHTML) tbody2.innerHTML = '<tr><td colspan="5" class="no-data" style="padding:8px;text-align:center">データなし</td></tr>';
+
+  // ルーム別テーブル
+  const tbody3 = document.querySelector('#tbl-room tbody');
+  tbody3.innerHTML = '';
+  ROOMS.forEach(rm => {
+    const sub = records.filter(r => r.room === rm);
+    if (!sub.length) return;
+    const mv = sub.map(r => MAKA_VAL[r.maka]);
+    const rv = sub.map(r => r.rank);
+    const moMStr = mode(mv).map(v => `<span class="maka maka-${MAKA_FROM_VAL(v)[0]}">${MAKA_FROM_VAL(v)}</span>`).join(' ');
+    tbody3.innerHTML += `<tr>
+      <td class="corr-key">${rm}</td>
+      <td>${sub.length}</td>
+      <td>${avg(mv) !== null ? MAKA_FROM_VAL(avg(mv)) : '—'}</td>
+      <td>${avg(rv) !== null ? avg(rv).toFixed(2) : '—'}</td>
+      <td>${moMStr}</td>
+      <td>${mode(rv).join('、')}</td>
+    </tr>`;
+  });
+  if (!tbody3.innerHTML) tbody3.innerHTML = '<tr><td colspan="6" class="no-data" style="padding:8px;text-align:center">データなし</td></tr>';
+
+  // 任意入力テーブル
+  const tbody4 = document.querySelector('#tbl-optional tbody');
+  tbody4.innerHTML = '';
+  let hasOpt = false;
+  MAKA_GRADES.forEach(g => {
+    const sub = data.filter(r => r.maka === g);
+    const withPts = sub.filter(r => r.pts !== null);
+    const withWin = sub.filter(r => r.win !== null);
+    const withDeal = sub.filter(r => r.deal !== null);
+    if (!withPts.length && !withWin.length && !withDeal.length) return;
+    hasOpt = true;
+    const avgPts = avg(withPts.map(r => r.pts));
+    const avgWin = avg(withWin.map(r => r.win));
+    const avgDeal = avg(withDeal.map(r => r.deal));
+    tbody4.innerHTML += `<tr>
+      <td class="corr-key"><span class="maka maka-${g[0]}">${g}</span></td>
+      <td>${avgPts !== null ? Math.round(avgPts).toLocaleString() + '点' : '—'}</td>
+      <td>${avgWin !== null ? avgWin.toFixed(2) : '—'}</td>
+      <td>${avgDeal !== null ? avgDeal.toFixed(2) : '—'}</td>
+    </tr>`;
+  });
+  document.getElementById('optional-stats').style.display = hasOpt ? 'block' : 'none';
+  if (!tbody4.innerHTML) tbody4.innerHTML = '<tr><td colspan="4" class="no-data" style="padding:8px;text-align:center">データなし</td></tr>';
+}
+
+function renderLog() {
+  const list = document.getElementById('log-list');
+  const empty = document.getElementById('log-empty');
+  if (!records.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  list.innerHTML = records.map(r => `
+    <div class="log-item">
+      <div>
+        <div style="font-size:12px;font-weight:500;color:var(--ink2)">${r.date} ${r.time}</div>
+        <div style="display:flex;gap:6px;margin-top:3px;flex-wrap:wrap">
+          <span class="room-badge room-${r.room.charAt(0)}">${r.room}</span>
+          <span style="font-size:11px;color:var(--ink3)">${r.type}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span class="maka maka-${r.maka[0]}">${r.maka}</span>
+        <span class="rank-badge rank-${r.rank}">${r.rank}</span>
+        ${r.pts !== null ? `<span style="font-size:11px;color:var(--ink3)">${r.pts.toLocaleString()}点</span>` : ''}
+        ${r.memo ? `<span style="font-size:11px;color:var(--ink3);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.memo}">💬 ${r.memo}</span>` : ''}
+      </div>
+      <div>
+        ${r.url ? `<a href="${r.url}" target="_blank" rel="noopener" style="font-size:11px;color:var(--jade)">牌譜</a>` : ''}
+      </div>
+      <div>
+        <button class="btn-danger" onclick="askDelete('${r.id}','${r.date} ${r.time} ${r.maka}')">削除</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderIO() {
+  const s = document.getElementById('data-summary');
+  if (!records.length) { s.innerHTML = '記録なし'; return; }
+  const rooms = ROOMS.map(rm => `${rm}: ${records.filter(r => r.room === rm).length}件`).filter(x => !x.endsWith('0件')).join('、');
+  s.innerHTML = `総対局数: <strong>${records.length}件</strong><br>ルーム別: ${rooms}`;
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `maka-records-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+}
+
+function handleImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      importData = JSON.parse(ev.target.result);
+      if (!Array.isArray(importData)) throw new Error();
+      document.getElementById('import-modal').classList.add('open');
+    } catch {
+      showAlert(document.getElementById('io-alert'), '無効なJSONファイルです。正しいエクスポートデータを選択してください。', 'error');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function doImport(mode) {
+  if (!importData) return;
+  if (mode === 'overwrite') {
+    records = importData;
+  } else {
+    const existingIds = new Set(records.map(r => r.id));
+    importData.forEach(r => { if (!existingIds.has(r.id)) records.push(r); });
+    records.sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+  }
+  save();
+  importData = null;
+  closeModal();
+  showAlert(document.getElementById('io-alert'), `インポート完了（${mode === 'overwrite' ? '上書き' : '追記'}）`, 'success');
+  renderIO();
+}
+
+function askDelete(id, desc) {
+  deleteId = id;
+  document.getElementById('delete-desc').textContent = `「${desc}」の記録を削除しますか？この操作は元に戻せません。`;
+  document.getElementById('delete-modal').classList.add('open');
+}
+
+function confirmDelete() {
+  if (!deleteId) return;
+  records = records.filter(r => r.id !== deleteId);
+  deleteId = null;
+  save();
+  closeModal();
+  renderLog();
+}
+
+function confirmClearAll() {
+  if (confirm('全データを削除します。この操作は元に戻せません。本当によろしいですか？')) {
+    records = [];
+    save();
+    renderIO();
+    renderLog();
+    showAlert(document.getElementById('io-alert'), '全データを削除しました', 'success');
+  }
+}
+
+function closeModal() {
+  document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('open'));
+}
+
+function refresh() { renderStats(); renderLog(); renderIO(); }
+
+load();
+</script>
+</body>
+</html>
