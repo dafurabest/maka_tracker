@@ -1164,20 +1164,18 @@ function getTimeslot(timeStr) {
 }
 
 // 連戦セッション番号を計算して records に付与（破壊的変更なし、配列を返す）
-function calcSessionNums(recs) {
-  // 時系列昇順でソート
-  const sorted = [...recs].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
-  const result = sorted.map((r, i) => {
-    if (i === 0) return { ...r, sessionNum: 1 };
+// 全記録に対してセッション番号を計算し、id→sessionNum のMapを返す
+function buildSessionMap() {
+  const dt = (d, t) => new Date(d + 'T' + t);
+  const sorted = [...records].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  const map = new Map();
+  sorted.forEach((r, i) => {
+    if (i === 0) { map.set(r.id, 1); return; }
     const prev = sorted[i - 1];
-    const dt = (d, t) => new Date(d + 'T' + t);
-    const diffMs = dt(r.date, r.time) - dt(prev.date, prev.time);
-    const diffHours = diffMs / 1000 / 3600;
-    // 前局との差が2時間以内なら連戦、前のsessionNumに+1
-    const prevNum = result[i - 1].sessionNum;
-    return { ...r, sessionNum: diffHours <= 2 ? prevNum + 1 : 1 };
+    const diffHours = (dt(r.date, r.time) - dt(prev.date, prev.time)) / 3600000;
+    map.set(r.id, diffHours <= 2 ? map.get(prev.id) + 1 : 1);
   });
-  return result;
+  return map;
 }
 
 // ===== 時間帯・連戦グラフ描画 =====
@@ -1243,13 +1241,15 @@ function renderTimeslotStats(data) {
 }
 
 function renderSessionStats(data) {
-  const withSession = calcSessionNums(data);
+  // 全記録でセッション番号を計算し、フィルター済みdataにマッピング
+  const sessionMap = buildSessionMap();
+  const withSession = data.map(r => ({ ...r, sessionNum: sessionMap.get(r.id) || 1 }));
   const maxN = Math.max(...withSession.map(r => r.sessionNum), 1);
   // 4局目以降はまとめて「4局目以降」に
   const LIMIT = 4;
   const getLabel = n => n >= LIMIT ? `${LIMIT}局目以降` : `${n}局目`;
   const labels = [];
-  for (let i = 1; i < LIMIT; i++) labels.push(`${i}局目`);
+  for (let i = 1; i <= Math.min(maxN, LIMIT - 1); i++) labels.push(`${i}局目`);
   if (maxN >= LIMIT) labels.push(`${LIMIT}局目以降`);
 
   const byN = {};
