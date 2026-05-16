@@ -66,7 +66,7 @@
 ### ローカルで確認する
 
 ```bash
-git clone https://github.com/<your-username>/maka-tracker.git
+git clone https://github.com/dafurabest/maka-tracker.git
 cd maka-tracker
 # ブラウザで index.html を直接開くだけで動作します
 open index.html
