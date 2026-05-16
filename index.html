@@ -148,6 +148,11 @@
     .btn-icon{background:none;border:1px solid var(--border);border-radius:6px;width:32px;height:32px;cursor:pointer;font-size:15px;color:var(--ink3);display:flex;align-items:center;justify-content:center;transition:.12s}
     .btn-icon:hover{border-color:#e74c3c;color:#e74c3c}
     .settings-note{font-size:11px;color:var(--ink3);margin-bottom:10px;line-height:1.7}
+    .corr-banner{display:flex;align-items:center;gap:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;flex-wrap:wrap}
+    .corr-val{font-family:var(--font-title);font-size:26px;font-weight:700;color:var(--jade-dark);min-width:56px;text-align:center}
+    .corr-label{font-size:11px;color:var(--ink3);margin-top:1px}
+    .corr-divider{width:1px;height:36px;background:var(--border)}
+    .corr-text{font-size:13px;color:var(--ink2);line-height:1.55}
 
     /* ガイドタブ */
     .guide-body{line-height:1.85;color:var(--ink)}
@@ -294,6 +299,7 @@
 
     <div id="stats-body">
       <div class="stat-grid" id="stat-cards"></div>
+      <div class="corr-banner" id="corr-banner" style="display:none"></div>
 
       <h3>MAKA評価分布（帯グラフ）</h3>
       <div id="dist-legend" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px"></div>
@@ -664,6 +670,36 @@ function quantile(arr, q) {
   const lo = Math.floor(pos), hi = Math.ceil(pos);
   return lo === hi ? s[lo] : s[lo] + (s[hi] - s[lo]) * (pos - lo);
 }
+function rankTransform(arr) {
+  // 同率は平均順位を割り当てる
+  const sorted = [...arr].map((v, i) => ({ v, i })).sort((a, b) => a.v - b.v);
+  const ranks = new Array(arr.length);
+  let i = 0;
+  while (i < sorted.length) {
+    let j = i;
+    while (j < sorted.length && sorted[j].v === sorted[i].v) j++;
+    const r = (i + j + 1) / 2; // 平均順位（1始まり）
+    for (let k = i; k < j; k++) ranks[sorted[k].i] = r;
+    i = j;
+  }
+  return ranks;
+}
+function spearman(xs, ys) {
+  if (xs.length < 2) return null;
+  const rx = rankTransform(xs), ry = rankTransform(ys);
+  const mx = avg(rx), my = avg(ry);
+  const num = rx.reduce((s, x, i) => s + (x - mx) * (ry[i] - my), 0);
+  const den = Math.sqrt(rx.reduce((s, x) => s + (x - mx) ** 2, 0) * ry.reduce((s, y) => s + (y - my) ** 2, 0));
+  return den === 0 ? null : num / den;
+}
+function corrInterpret(r) {
+  if (r === null) return null;
+  const abs = Math.abs(r);
+  if (abs >= 0.7) return 'MAKA評価と順位に<strong>強い相関</strong>があります。実力が結果に出やすい状態です。';
+  if (abs >= 0.4) return 'MAKA評価と順位に<strong>ある程度の相関</strong>があります。概ね実力が結果に反映されています。';
+  if (abs >= 0.2) return 'MAKA評価と順位に<strong>弱い相関</strong>があります。運の影響も大きい状態です。';
+  return 'MAKA評価と順位に<strong>ほぼ相関がありません</strong>。運の影響が非常に大きい状態です。';
+}
 
 function destroyChart(id) {
   if (charts[id]) { charts[id].destroy(); delete charts[id]; }
@@ -687,6 +723,24 @@ function renderStats() {
     <div class="stat-card"><div class="stat-val">${avgMaka !== null ? MAKA_FROM_VAL(avgMaka) : '—'}</div><div class="stat-label">平均MAKA</div></div>
     <div class="stat-card"><div class="stat-val">${Math.round(first / data.length * 100)}%</div><div class="stat-label">1位率</div></div>
   `;
+
+  // 相関係数バナー
+  const corrBanner = document.getElementById('corr-banner');
+  const r = spearman(makaVals, ranks);
+  if (r !== null && data.length >= 5) {
+    const interpret = corrInterpret(r);
+    corrBanner.style.display = 'flex';
+    corrBanner.innerHTML = `
+      <div>
+        <div class="corr-val">${r.toFixed(2)}</div>
+        <div class="corr-label">相関係数</div>
+      </div>
+      <div class="corr-divider"></div>
+      <div class="corr-text">${interpret}<br><span style="font-size:11px;color:var(--ink3)">MAKA数値（小=高評価）と順位（小=好成績）のスピアマン順位相関係数</span></div>
+    `;
+  } else {
+    corrBanner.style.display = 'none';
+  }
 
   const gradeCounts = {};
   MAKA_GRADES.forEach(g => { gradeCounts[g] = 0; });
