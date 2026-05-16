@@ -305,7 +305,7 @@
       <h3 style="margin-top:14px">MAKA評価ごとの順位統計</h3>
       <div style="overflow-x:auto">
         <table class="corr-table" id="tbl-maka-rank">
-          <thead><tr><th>MAKA</th><th>件数</th><th>平均順位</th><th>中央値</th><th>最頻値</th></tr></thead>
+          <thead><tr><th>MAKA</th><th>件数</th><th>平均</th><th>中央値</th><th>最頻値</th><th>標準偏差</th><th>Q1〜Q3</th><th>最小〜最大</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -313,7 +313,7 @@
       <h3 style="margin-top:14px">順位ごとのMAKA評価統計</h3>
       <div style="overflow-x:auto">
         <table class="corr-table" id="tbl-rank-maka">
-          <thead><tr><th>順位</th><th>件数</th><th>平均MAKA</th><th>中央値</th><th>最頻値</th></tr></thead>
+          <thead><tr><th>順位</th><th>件数</th><th>平均MAKA</th><th>中央値</th><th>最頻値</th><th>標準偏差</th><th>Q1〜Q3</th><th>最小〜最大</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -652,6 +652,18 @@ function mode(arr) {
   const max = Math.max(...Object.values(freq));
   return Object.keys(freq).filter(k => freq[k] === max).map(Number);
 }
+function stddev(arr) {
+  if (arr.length < 2) return null;
+  const m = avg(arr);
+  return Math.sqrt(arr.reduce((s, v) => s + (v - m) ** 2, 0) / arr.length);
+}
+function quantile(arr, q) {
+  if (!arr.length) return null;
+  const s = [...arr].sort((a, b) => a - b);
+  const pos = (s.length - 1) * q;
+  const lo = Math.floor(pos), hi = Math.ceil(pos);
+  return lo === hi ? s[lo] : s[lo] + (s[hi] - s[lo]) * (pos - lo);
+}
 
 function destroyChart(id) {
   if (charts[id]) { charts[id].destroy(); delete charts[id]; }
@@ -737,15 +749,23 @@ function renderStats() {
     const sub = data.filter(r => r.maka === g);
     if (!sub.length) return;
     const rv = sub.map(r => r.rank);
+    const sd = stddev(rv);
+    const q1 = quantile(rv, 0.25);
+    const q3 = quantile(rv, 0.75);
+    const mn = Math.min(...rv);
+    const mx = Math.max(...rv);
     tbody1.innerHTML += `<tr>
       <td class="corr-key"><span class="maka maka-${g[0]}">${g}</span></td>
       <td>${sub.length}</td>
       <td>${avg(rv) !== null ? avg(rv).toFixed(2) : '—'}</td>
       <td>${median(rv) !== null ? median(rv).toFixed(1) : '—'}</td>
       <td>${mode(rv).join('、')}</td>
+      <td>${sd !== null ? sd.toFixed(2) : '—'}</td>
+      <td>${q1 !== null ? q1.toFixed(1) + '〜' + q3.toFixed(1) : '—'}</td>
+      <td>${mn}〜${mx}</td>
     </tr>`;
   });
-  if (!tbody1.innerHTML) tbody1.innerHTML = '<tr><td colspan="5" class="no-data" style="padding:8px;text-align:center">データなし</td></tr>';
+  if (!tbody1.innerHTML) tbody1.innerHTML = '<tr><td colspan="8" class="no-data" style="padding:8px;text-align:center">データなし</td></tr>';
 
   // 順位→MAKAテーブル
   const tbody2 = document.querySelector('#tbl-rank-maka tbody');
@@ -757,15 +777,24 @@ function renderStats() {
     const avgM = avg(mv);
     const medM = median(mv);
     const moMStr = mode(mv).map(v => `<span class="maka maka-${MAKA_FROM_VAL(v)[0]}">${MAKA_FROM_VAL(v)}</span>`).join(' ');
+    const sd = stddev(mv);
+    const q1 = quantile(mv, 0.25);
+    const q3 = quantile(mv, 0.75);
+    const mn = Math.min(...mv);
+    const mx = Math.max(...mv);
+    const fmtMaka = v => `<span class="maka maka-${MAKA_FROM_VAL(v)[0]}">${MAKA_FROM_VAL(v)}</span>`;
     tbody2.innerHTML += `<tr>
       <td class="corr-key"><span class="rank-badge rank-${rk}">${rk}</span></td>
       <td>${sub.length}</td>
       <td>${avgM !== null ? MAKA_FROM_VAL(avgM) + ' (' + avgM.toFixed(2) + ')' : '—'}</td>
       <td>${medM !== null ? MAKA_FROM_VAL(medM) : '—'}</td>
       <td>${moMStr}</td>
+      <td>${sd !== null ? sd.toFixed(2) : '—'}</td>
+      <td>${q1 !== null ? fmtMaka(Math.round(q1)) + '〜' + fmtMaka(Math.round(q3)) : '—'}</td>
+      <td>${fmtMaka(mn)}〜${fmtMaka(mx)}</td>
     </tr>`;
   });
-  if (!tbody2.innerHTML) tbody2.innerHTML = '<tr><td colspan="5" class="no-data" style="padding:8px;text-align:center">データなし</td></tr>';
+  if (!tbody2.innerHTML) tbody2.innerHTML = '<tr><td colspan="8" class="no-data" style="padding:8px;text-align:center">データなし</td></tr>';
 
   // ルーム別テーブル
   const tbody3 = document.querySelector('#tbl-room tbody');
