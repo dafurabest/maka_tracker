@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@400;500;700&family=Noto+Sans+JP:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     :root{
@@ -140,6 +141,31 @@
     .view-mode .detail-row input,.view-mode .detail-row select,.view-mode .detail-row textarea{border-color:transparent;background:var(--surface2);pointer-events:none}
     .edit-indicator{font-size:11px;color:var(--jade);margin-left:6px;opacity:0;transition:.15s}
     .edit-indicator.show{opacity:1}
+
+    .timeslot-list{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+    .timeslot-row{display:grid;grid-template-columns:1fr 110px 32px;gap:8px;align-items:center}
+    .timeslot-row input{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-family:var(--font-ja);font-size:13px;color:var(--ink);width:100%}
+    .btn-icon{background:none;border:1px solid var(--border);border-radius:6px;width:32px;height:32px;cursor:pointer;font-size:15px;color:var(--ink3);display:flex;align-items:center;justify-content:center;transition:.12s}
+    .btn-icon:hover{border-color:#e74c3c;color:#e74c3c}
+    .settings-note{font-size:11px;color:var(--ink3);margin-bottom:10px;line-height:1.7}
+
+    /* ガイドタブ */
+    .guide-body{line-height:1.85;color:var(--ink)}
+    .guide-body h1{font-family:var(--font-title);font-size:20px;color:var(--jade-dark);margin:0 0 8px}
+    .guide-body h2{font-family:var(--font-title);font-size:16px;color:var(--jade-dark);margin:24px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+    .guide-body h3{font-size:13px;font-weight:700;color:var(--ink2);margin:16px 0 6px}
+    .guide-body p{font-size:13px;margin:0 0 10px}
+    .guide-body ul,.guide-body ol{font-size:13px;padding-left:1.4em;margin:0 0 10px}
+    .guide-body li{margin-bottom:3px}
+    .guide-body table{width:100%;border-collapse:collapse;font-size:12px;margin:0 0 12px}
+    .guide-body th{background:var(--surface3);color:var(--jade-dark);font-weight:500;padding:6px 10px;text-align:left;border:1px solid var(--border)}
+    .guide-body td{padding:5px 10px;border:1px solid var(--border);vertical-align:top}
+    .guide-body blockquote{background:var(--jade-light);border-left:3px solid var(--jade);border-radius:0 6px 6px 0;padding:8px 12px;margin:0 0 12px;font-size:12px;color:var(--ink2)}
+    .guide-body blockquote p{margin:0}
+    .guide-body code{background:var(--surface3);border-radius:3px;padding:1px 5px;font-size:12px;font-family:monospace}
+    .guide-body hr{border:none;border-top:1px solid var(--border);margin:20px 0}
+    .guide-body strong{color:var(--ink)}
+    .guide-loading{text-align:center;padding:32px;color:var(--ink3);font-size:13px}
   </style>
 </head>
 <body>
@@ -157,6 +183,8 @@
     <button class="nav-btn" onclick="showTab('stats')">📊 統計</button>
     <button class="nav-btn" onclick="showTab('log')">📋 対局ログ</button>
     <button class="nav-btn" onclick="showTab('io')">💾 データ</button>
+    <button class="nav-btn" onclick="showTab('guide')">📖 ガイド</button>
+    <button class="nav-btn" onclick="showTab('settings')">⚙️ 設定</button>
   </div>
 
   <!-- 入力 -->
@@ -307,6 +335,28 @@
           </table>
         </div>
       </div>
+
+      <h3 style="margin-top:14px">時間帯別 MAKA評価分布</h3>
+      <div id="timeslot-dist-wrap">
+        <div class="chart-wrap" style="height:200px"><canvas id="chart-timeslot-dist" role="img">時間帯別MAKA評価分布</canvas></div>
+        <div style="overflow-x:auto;margin-top:8px">
+          <table class="corr-table" id="tbl-timeslot">
+            <thead><tr><th>時間帯</th><th>件数</th><th>平均MAKA</th><th>中央値</th><th>最頻値</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <h3 style="margin-top:14px">連戦N局目別 MAKA評価分布 <span style="font-size:11px;color:var(--ink3);font-weight:400">（前局から2時間以内を連戦と判定）</span></h3>
+      <div id="session-dist-wrap">
+        <div class="chart-wrap" style="height:160px"><canvas id="chart-session-dist" role="img">連戦N局目別MAKA評価分布</canvas></div>
+        <div style="overflow-x:auto;margin-top:8px">
+          <table class="corr-table" id="tbl-session">
+            <thead><tr><th>連戦N局目</th><th>件数</th><th>平均MAKA</th><th>中央値</th><th>最頻値</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -318,6 +368,27 @@
       <div>まだ記録がありません。</div>
     </div>
     <div class="log-list" id="log-list"></div>
+  </div>
+
+  <!-- ガイド -->
+  <div id="tab-guide" class="section">
+    <div id="guide-content" class="guide-loading">読み込み中…</div>
+  </div>
+
+  <!-- 設定 -->
+  <div id="tab-settings" class="section">
+    <h2>設定</h2>
+    <h3>時間帯の設定</h3>
+    <p class="settings-note">
+      1日を任意の時間帯に分割できます。開始時刻の昇順で自動ソートされます。<br>
+      時間帯は「開始時刻〜次の帯の開始時刻」として扱われます（最後の帯は翌日の最初の帯まで）。
+    </p>
+    <div class="timeslot-list" id="timeslot-list"></div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button class="btn-secondary" onclick="addTimeslot()">＋ 帯を追加</button>
+      <button class="btn-primary" onclick="saveSettings()">設定を保存</button>
+    </div>
+    <div id="settings-alert"></div>
   </div>
 
   <!-- データ管理 -->
@@ -479,6 +550,7 @@ let deleteId = null;
 let charts = {};
 
 function load() {
+  loadSettings();
   try { records = JSON.parse(localStorage.getItem('makaRecords') || '[]'); } catch { records = []; }
   const now = new Date();
   document.getElementById('f-date').value = now.toISOString().slice(0, 10);
@@ -494,11 +566,13 @@ function showTab(t) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + t).classList.add('active');
-  const idx = ['input','stats','log','io'].indexOf(t);
+  const idx = ['input','stats','log','io','guide','settings'].indexOf(t);
   document.querySelectorAll('.nav-btn')[idx].classList.add('active');
   if (t === 'stats') renderStats();
   if (t === 'log') renderLog();
   if (t === 'io') renderIO();
+  if (t === 'settings') renderSettingsUI();
+  if (t === 'guide') loadGuide();
 }
 
 function showAlert(el, msg, type) {
@@ -736,6 +810,9 @@ function renderStats() {
   });
   document.getElementById('optional-stats').style.display = hasOpt ? 'block' : 'none';
   if (!tbody4.innerHTML) tbody4.innerHTML = '<tr><td colspan="4" class="no-data" style="padding:8px;text-align:center">データなし</td></tr>';
+
+  renderTimeslotStats(data);
+  renderSessionStats(data);
 }
 
 function renderLog() {
@@ -960,6 +1037,269 @@ function closeModal() {
 }
 
 function refresh() { renderStats(); renderLog(); renderIO(); }
+
+// ===== ガイド =====
+let guideLoaded = false;
+
+async function loadGuide() {
+  if (guideLoaded) return;
+  const el = document.getElementById('guide-content');
+  el.className = 'guide-loading';
+  el.textContent = '読み込み中…';
+  try {
+    const res = await fetch('guide.md');
+    if (!res.ok) throw new Error('fetch failed');
+    const md = await res.text();
+    el.className = 'guide-body';
+    el.innerHTML = marked.parse(md);
+    guideLoaded = true;
+  } catch {
+    el.className = 'guide-loading';
+    el.textContent = 'ガイドの読み込みに失敗しました。Cloudflare Pages上で開いているか確認してください。';
+  }
+}
+
+// ===== 設定（時間帯） =====
+const DEFAULT_TIMESLOTS = [
+  { name: '朝',   start: '06:00' },
+  { name: '昼',   start: '12:00' },
+  { name: '夜',   start: '18:00' },
+  { name: '深夜', start: '00:00' },
+];
+
+let timeslots = [];
+
+function loadSettings() {
+  try {
+    const saved = localStorage.getItem('makaTimeslots');
+    timeslots = saved ? JSON.parse(saved) : [...DEFAULT_TIMESLOTS];
+  } catch { timeslots = [...DEFAULT_TIMESLOTS]; }
+}
+
+function saveSettings() {
+  const rows = document.querySelectorAll('#timeslot-list .timeslot-row');
+  const parsed = [];
+  for (const row of rows) {
+    const name = row.querySelector('.ts-name').value.trim();
+    const start = row.querySelector('.ts-start').value;
+    if (!name || !start) {
+      showAlert(document.getElementById('settings-alert'), '帯名と開始時刻をすべて入力してください', 'error');
+      return;
+    }
+    parsed.push({ name, start });
+  }
+  if (parsed.length < 1) {
+    showAlert(document.getElementById('settings-alert'), '時間帯は1つ以上必要です', 'error');
+    return;
+  }
+  // 開始時刻でソート（00:00は24:00として扱い最後尾へ）
+  parsed.sort((a, b) => {
+    const ta = a.start === '00:00' ? '24:00' : a.start;
+    const tb = b.start === '00:00' ? '24:00' : b.start;
+    return ta.localeCompare(tb);
+  });
+  timeslots = parsed;
+  localStorage.setItem('makaTimeslots', JSON.stringify(timeslots));
+  renderSettingsUI();
+  showAlert(document.getElementById('settings-alert'), '設定を保存しました', 'success');
+}
+
+function renderSettingsUI() {
+  const list = document.getElementById('timeslot-list');
+  list.innerHTML = timeslots.map((ts, i) => `
+    <div class="timeslot-row">
+      <input class="ts-name" type="text" value="${ts.name}" placeholder="帯名（例: 深夜）">
+      <input class="ts-start" type="time" value="${ts.start}">
+      <button class="btn-icon" onclick="removeTimeslot(${i})" title="削除">×</button>
+    </div>
+  `).join('');
+}
+
+function addTimeslot() {
+  timeslots.push({ name: '', start: '00:00' });
+  renderSettingsUI();
+  // フォーカスを新しい行の帯名へ
+  const rows = document.querySelectorAll('#timeslot-list .timeslot-row');
+  rows[rows.length - 1].querySelector('.ts-name').focus();
+}
+
+function removeTimeslot(i) {
+  if (timeslots.length <= 1) {
+    showAlert(document.getElementById('settings-alert'), '時間帯は最低1つ必要です', 'error');
+    return;
+  }
+  timeslots.splice(i, 1);
+  renderSettingsUI();
+}
+
+// 時刻文字列(HH:MM)を分に変換
+function timeToMin(t) {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+// 対局の時刻がどの時間帯に属するか返す
+function getTimeslot(timeStr) {
+  const min = timeToMin(timeStr);
+  // sortedは開始時刻昇順（00:00は末尾）
+  const sorted = [...timeslots].sort((a, b) => {
+    const ta = a.start === '00:00' ? 1440 : timeToMin(a.start);
+    const tb = b.start === '00:00' ? 1440 : timeToMin(b.start);
+    return ta - tb;
+  });
+  // 深夜帯（00:00）は特別扱い: minが0以上かつ最初の帯の開始前
+  let result = sorted[sorted.length - 1]; // デフォルト最終帯
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    const startMin = sorted[i].start === '00:00' ? 0 : timeToMin(sorted[i].start);
+    if (sorted[i].start === '00:00') {
+      // 深夜帯: 0:00〜最初の非00:00帯の開始前
+      const firstNonMidnight = sorted.find(s => s.start !== '00:00');
+      const boundary = firstNonMidnight ? timeToMin(firstNonMidnight.start) : 1440;
+      if (min < boundary) { result = sorted[i]; break; }
+    } else {
+      if (min >= startMin) { result = sorted[i]; break; }
+    }
+  }
+  return result.name;
+}
+
+// 連戦セッション番号を計算して records に付与（破壊的変更なし、配列を返す）
+function calcSessionNums(recs) {
+  // 時系列昇順でソート
+  const sorted = [...recs].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  const result = sorted.map((r, i) => {
+    if (i === 0) return { ...r, sessionNum: 1 };
+    const prev = sorted[i - 1];
+    const dt = (d, t) => new Date(d + 'T' + t);
+    const diffMs = dt(r.date, r.time) - dt(prev.date, prev.time);
+    const diffHours = diffMs / 1000 / 3600;
+    // 前局との差が2時間以内なら連戦、前のsessionNumに+1
+    const prevNum = result[i - 1].sessionNum;
+    return { ...r, sessionNum: diffHours <= 2 ? prevNum + 1 : 1 };
+  });
+  return result;
+}
+
+// ===== 時間帯・連戦グラフ描画 =====
+function renderTimeslotStats(data) {
+  // 時間帯ラベル一覧（設定順）
+  const sorted = [...timeslots].sort((a, b) => {
+    const ta = a.start === '00:00' ? 1440 : timeToMin(a.start);
+    const tb = b.start === '00:00' ? 1440 : timeToMin(b.start);
+    return ta - tb;
+  });
+  const labels = sorted.map(ts => ts.name);
+
+  // 各帯にレコードを振り分け
+  const bySlot = {};
+  labels.forEach(l => { bySlot[l] = []; });
+  data.forEach(r => {
+    const slot = getTimeslot(r.time);
+    if (bySlot[slot]) bySlot[slot].push(r);
+  });
+
+  // 帯グラフ用データセット
+  const gradesUsed = MAKA_GRADES.filter(g => data.some(r => r.maka === g));
+  const datasets = gradesUsed.map(g => ({
+    label: g,
+    data: labels.map(l => {
+      const sub = bySlot[l];
+      return sub.length ? sub.filter(r => r.maka === g).length / sub.length * 100 : 0;
+    }),
+    backgroundColor: MAKA_COLORS[g],
+    stack: 's'
+  }));
+
+  destroyChart('timeslot');
+  const h = Math.max(120, labels.length * 44);
+  document.getElementById('chart-timeslot-dist').parentElement.style.height = h + 'px';
+  charts['timeslot'] = new Chart(document.getElementById('chart-timeslot-dist'), {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.raw.toFixed(1)}%` } } },
+      scales: { x: { stacked: true, max: 100, ticks: { callback: v => v + '%' } }, y: { stacked: true } }
+    }
+  });
+
+  // テーブル
+  const tbody = document.querySelector('#tbl-timeslot tbody');
+  tbody.innerHTML = '';
+  labels.forEach(l => {
+    const sub = bySlot[l];
+    if (!sub.length) return;
+    const mv = sub.map(r => MAKA_VAL[r.maka]);
+    const moStr = mode(mv).map(v => `<span class="maka maka-${MAKA_FROM_VAL(v)[0]}">${MAKA_FROM_VAL(v)}</span>`).join(' ');
+    tbody.innerHTML += `<tr>
+      <td class="corr-key">${l}</td>
+      <td>${sub.length}</td>
+      <td>${avg(mv) !== null ? MAKA_FROM_VAL(avg(mv)) + ' (' + avg(mv).toFixed(2) + ')' : '—'}</td>
+      <td>${median(mv) !== null ? MAKA_FROM_VAL(median(mv)) : '—'}</td>
+      <td>${moStr}</td>
+    </tr>`;
+  });
+  if (!tbody.innerHTML) tbody.innerHTML = '<tr><td colspan="5" class="no-data" style="padding:8px;text-align:center">データなし</td></tr>';
+}
+
+function renderSessionStats(data) {
+  const withSession = calcSessionNums(data);
+  const maxN = Math.max(...withSession.map(r => r.sessionNum), 1);
+  // 4局目以降はまとめて「4局目以降」に
+  const LIMIT = 4;
+  const getLabel = n => n >= LIMIT ? `${LIMIT}局目以降` : `${n}局目`;
+  const labels = [];
+  for (let i = 1; i < LIMIT; i++) labels.push(`${i}局目`);
+  if (maxN >= LIMIT) labels.push(`${LIMIT}局目以降`);
+
+  const byN = {};
+  labels.forEach(l => { byN[l] = []; });
+  withSession.forEach(r => {
+    const l = getLabel(r.sessionNum);
+    if (byN[l]) byN[l].push(r);
+  });
+
+  const gradesUsed = MAKA_GRADES.filter(g => data.some(r => r.maka === g));
+  const datasets = gradesUsed.map(g => ({
+    label: g,
+    data: labels.map(l => {
+      const sub = byN[l];
+      return sub.length ? sub.filter(r => r.maka === g).length / sub.length * 100 : 0;
+    }),
+    backgroundColor: MAKA_COLORS[g],
+    stack: 's'
+  }));
+
+  destroyChart('session');
+  const h = Math.max(120, labels.length * 44);
+  document.getElementById('chart-session-dist').parentElement.style.height = h + 'px';
+  charts['session'] = new Chart(document.getElementById('chart-session-dist'), {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.raw.toFixed(1)}%` } } },
+      scales: { x: { stacked: true, max: 100, ticks: { callback: v => v + '%' } }, y: { stacked: true } }
+    }
+  });
+
+  const tbody = document.querySelector('#tbl-session tbody');
+  tbody.innerHTML = '';
+  labels.forEach(l => {
+    const sub = byN[l];
+    if (!sub.length) return;
+    const mv = sub.map(r => MAKA_VAL[r.maka]);
+    const moStr = mode(mv).map(v => `<span class="maka maka-${MAKA_FROM_VAL(v)[0]}">${MAKA_FROM_VAL(v)}</span>`).join(' ');
+    tbody.innerHTML += `<tr>
+      <td class="corr-key">${l}</td>
+      <td>${sub.length}</td>
+      <td>${avg(mv) !== null ? MAKA_FROM_VAL(avg(mv)) + ' (' + avg(mv).toFixed(2) + ')' : '—'}</td>
+      <td>${median(mv) !== null ? MAKA_FROM_VAL(median(mv)) : '—'}</td>
+      <td>${moStr}</td>
+    </tr>`;
+  });
+  if (!tbody.innerHTML) tbody.innerHTML = '<tr><td colspan="5" class="no-data" style="padding:8px;text-align:center">データなし</td></tr>';
+}
 
 load();
 </script>
