@@ -1,0 +1,74 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@400;700&amp;family=Noto+Sans+JP:wght@400;500&amp;display=swap');
+    .title { font-family: 'Kaisei Decol', serif; font-weight: 700; fill: #ffffff; }
+    .sub   { font-family: 'Noto Sans JP', sans-serif; font-weight: 400; fill: rgba(255,255,255,0.75); }
+    .badge { font-family: 'Kaisei Decol', serif; font-weight: 700; }
+    .feat  { font-family: 'Noto Sans JP', sans-serif; font-weight: 400; fill: rgba(255,255,255,0.85); font-size: 22px; }
+    .foot  { font-family: 'Noto Sans JP', sans-serif; font-size: 20px; fill: rgba(255,255,255,0.6); }
+  </style>
+
+  <!-- 背景 -->
+  <rect width="1200" height="630" fill="#0F6E56"/>
+
+  <!-- 右側グリッド装飾 -->
+  <g opacity="0.07" stroke="#ffffff" stroke-width="1" fill="none">
+    <line x1="600" y1="0" x2="600" y2="630"/>
+    <line x1="700" y1="0" x2="700" y2="630"/>
+    <line x1="800" y1="0" x2="800" y2="630"/>
+    <line x1="900" y1="0" x2="900" y2="630"/>
+    <line x1="1000" y1="0" x2="1000" y2="630"/>
+    <line x1="1100" y1="0" x2="1100" y2="630"/>
+    <line x1="600" y1="90"  x2="1200" y2="90"/>
+    <line x1="600" y1="180" x2="1200" y2="180"/>
+    <line x1="600" y1="270" x2="1200" y2="270"/>
+    <line x1="600" y1="360" x2="1200" y2="360"/>
+    <line x1="600" y1="450" x2="1200" y2="450"/>
+    <line x1="600" y1="540" x2="1200" y2="540"/>
+  </g>
+
+  <!-- 右側帯グラフモチーフ -->
+  <rect x="660" y="120" width="480" height="52" rx="6" fill="#1D9E75" opacity="0.9"/>
+  <text x="676" y="154" class="badge" font-size="22" fill="#ffffff">S+</text>
+  <rect x="730" y="131" width="385" height="30" rx="4" fill="rgba(255,255,255,0.15)"/>
+
+  <rect x="660" y="188" width="380" height="52" rx="6" fill="#27ae60" opacity="0.9"/>
+  <text x="676" y="222" class="badge" font-size="22" fill="#ffffff">S</text>
+  <rect x="720" y="199" width="300" height="30" rx="4" fill="rgba(255,255,255,0.15)"/>
+
+  <rect x="660" y="256" width="300" height="52" rx="6" fill="#2980b9" opacity="0.9"/>
+  <text x="676" y="290" class="badge" font-size="22" fill="#ffffff">A+</text>
+  <rect x="724" y="267" width="218" height="30" rx="4" fill="rgba(255,255,255,0.15)"/>
+
+  <rect x="660" y="324" width="240" height="52" rx="6" fill="#8e44ad" opacity="0.9"/>
+  <text x="676" y="358" class="badge" font-size="22" fill="#ffffff">A</text>
+  <rect x="716" y="335" width="166" height="30" rx="4" fill="rgba(255,255,255,0.15)"/>
+
+  <rect x="660" y="392" width="160" height="52" rx="6" fill="#e67e22" opacity="0.9"/>
+  <text x="676" y="426" class="badge" font-size="22" fill="#ffffff">B</text>
+  <rect x="712" y="403" width="90"  height="30" rx="4" fill="rgba(255,255,255,0.15)"/>
+
+  <rect x="660" y="460" width="100" height="52" rx="6" fill="#e74c3c" opacity="0.85"/>
+  <text x="676" y="494" class="badge" font-size="22" fill="#ffffff">C</text>
+
+  <!-- 左側：牌アイコン風 -->
+  <rect x="72" y="72" width="72" height="80" rx="10" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+  <text x="108" y="128" font-size="44" text-anchor="middle" fill="#ffffff">🀄</text>
+
+  <!-- タイトル -->
+  <text x="72" y="230" class="title" font-size="68">MAKA評価管理</text>
+  <text x="72" y="294" class="sub"   font-size="28">雀魂 成績統計トラッカー</text>
+
+  <!-- 区切り線 -->
+  <rect x="72" y="326" width="480" height="2" rx="1" fill="rgba(255,255,255,0.25)"/>
+
+  <!-- 機能リスト -->
+  <text x="72" y="374" class="feat">📊  MAKA評価 × 順位の統計分析</text>
+  <text x="72" y="418" class="feat">⏱  時間帯・連戦別の成績傾向</text>
+  <text x="72" y="462" class="feat">📈  スピアマン相関係数で実力を可視化</text>
+  <text x="72" y="506" class="feat">💾  データの保存・エクスポート対応</text>
+
+  <!-- フッターバー -->
+  <rect x="0" y="566" width="1200" height="64" fill="rgba(0,0,0,0.2)"/>
+  <text x="72" y="607" class="foot">ブラウザだけで完結 · サーバー不要 · 完全無料</text>
+</svg>
