@@ -149,6 +149,13 @@
     .btn-icon:hover{border-color:#e74c3c;color:#e74c3c}
     .settings-note{font-size:11px;color:var(--ink3);margin-bottom:10px;line-height:1.7}
     .corr-banner{display:flex;align-items:center;gap:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;flex-wrap:wrap}
+    .filter-section{display:flex;flex-direction:column;gap:6px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:14px}
+    .filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .filter-row-label{font-size:11px;font-weight:500;color:var(--ink3);min-width:52px}
+    .filter-sep{height:1px;background:var(--border);margin:2px 0}
+    .filter-n-input{width:64px;padding:3px 7px;border:1px solid var(--border);border-radius:20px;font-size:12px;font-family:var(--font-ja);color:var(--ink);background:var(--surface);text-align:center}
+    .filter-n-input:focus{outline:none;border-color:var(--jade)}
+    .filter-n-input.active-input{border-color:var(--jade);background:var(--jade-light)}
     .corr-val{font-family:var(--font-title);font-size:26px;font-weight:700;color:var(--jade-dark);min-width:56px;text-align:center}
     .corr-label{font-size:11px;color:var(--ink3);margin-top:1px}
     .corr-divider{width:1px;height:36px;background:var(--border)}
@@ -278,18 +285,48 @@
   <!-- 統計 -->
   <div id="tab-stats" class="section">
     <h2>統計分析</h2>
-    <div class="filter-bar">
-      <span class="filter-label">戦型:</span>
-      <button class="filter-chip active" data-filter-type="all" onclick="setFilter('type','all',this)">すべて</button>
-      <button class="filter-chip" data-filter-type="東風戦" onclick="setFilter('type','東風戦',this)">東風戦</button>
-      <button class="filter-chip" data-filter-type="半荘戦" onclick="setFilter('type','半荘戦',this)">半荘戦</button>
-      <span class="filter-label" style="margin-left:8px">ルーム:</span>
-      <button class="filter-chip active" data-filter-room="all" onclick="setFilter('room','all',this)">すべて</button>
-      <button class="filter-chip" data-filter-room="銅の間" onclick="setFilter('room','銅の間',this)">銅</button>
-      <button class="filter-chip" data-filter-room="銀の間" onclick="setFilter('room','銀の間',this)">銀</button>
-      <button class="filter-chip" data-filter-room="金の間" onclick="setFilter('room','金の間',this)">金</button>
-      <button class="filter-chip" data-filter-room="玉の間" onclick="setFilter('room','玉の間',this)">玉</button>
-      <button class="filter-chip" data-filter-room="王座の間" onclick="setFilter('room','王座の間',this)">王座</button>
+    <div class="filter-section">
+      <div class="filter-row">
+        <span class="filter-row-label">戦型</span>
+        <button class="filter-chip active" data-filter-type="all" onclick="setFilter('type','all',this)">すべて</button>
+        <button class="filter-chip" data-filter-type="東風戦" onclick="setFilter('type','東風戦',this)">東風戦</button>
+        <button class="filter-chip" data-filter-type="半荘戦" onclick="setFilter('type','半荘戦',this)">半荘戦</button>
+      </div>
+      <div class="filter-sep"></div>
+      <div class="filter-row">
+        <span class="filter-row-label">ルーム</span>
+        <button class="filter-chip active" data-filter-room="all" onclick="setFilter('room','all',this)">すべて</button>
+        <button class="filter-chip" data-filter-room="銅の間" onclick="setFilter('room','銅の間',this)">銅</button>
+        <button class="filter-chip" data-filter-room="銀の間" onclick="setFilter('room','銀の間',this)">銀</button>
+        <button class="filter-chip" data-filter-room="金の間" onclick="setFilter('room','金の間',this)">金</button>
+        <button class="filter-chip" data-filter-room="玉の間" onclick="setFilter('room','玉の間',this)">玉</button>
+        <button class="filter-chip" data-filter-room="王座の間" onclick="setFilter('room','王座の間',this)">王座</button>
+      </div>
+      <div class="filter-sep"></div>
+      <div class="filter-row">
+        <span class="filter-row-label">期間</span>
+        <button class="filter-chip active" data-filter-period="all" onclick="setPeriodFilter('all',this)">すべて</button>
+        <button class="filter-chip" data-filter-period="period" onclick="setPeriodFilter('period',this)">期間指定</button>
+        <button class="filter-chip" data-filter-period="recent" onclick="setPeriodFilter('recent',this)">直近N局</button>
+      </div>
+      <div id="period-inputs" style="display:none">
+        <div class="filter-row" style="margin-top:4px">
+          <span class="filter-row-label" style="color:var(--jade);font-size:11px">期間</span>
+          <input type="date" id="filter-date-from" onchange="filters.dateFrom=this.value;renderStats()" style="padding:3px 7px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:var(--font-ja);color:var(--ink);background:var(--surface)">
+          <span style="font-size:12px;color:var(--ink3)">〜</span>
+          <input type="date" id="filter-date-to" onchange="filters.dateTo=this.value;renderStats()" style="padding:3px 7px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:var(--font-ja);color:var(--ink);background:var(--surface)">
+        </div>
+      </div>
+      <div id="recent-inputs" style="display:none">
+        <div class="filter-row" style="margin-top:4px">
+          <span class="filter-row-label" style="color:var(--jade);font-size:11px">直近</span>
+          <button class="filter-chip" data-filter-n="10" onclick="setRecentN(10,this)">10局</button>
+          <button class="filter-chip" data-filter-n="20" onclick="setRecentN(20,this)">20局</button>
+          <button class="filter-chip" data-filter-n="50" onclick="setRecentN(50,this)">50局</button>
+          <button class="filter-chip" data-filter-n="100" onclick="setRecentN(100,this)">100局</button>
+          <input type="number" id="filter-n-custom" class="filter-n-input" min="1" placeholder="N局" oninput="setRecentNCustom(this)">
+        </div>
+      </div>
     </div>
 
     <div id="stats-empty" class="empty" style="display:none">
@@ -550,7 +587,7 @@ function extractUrl(raw) {
 }
 
 let records = [];
-let filters = { type: 'all', room: 'all' };
+let filters = { type: 'all', room: 'all', period: 'all', dateFrom: '', dateTo: '', recentN: null };
 let importData = null;
 let deleteId = null;
 let charts = {};
@@ -636,12 +673,59 @@ function setFilter(key, val, btn) {
   renderStats();
 }
 
+function setPeriodFilter(mode, btn) {
+  filters.period = mode;
+  document.querySelectorAll('[data-filter-period]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('period-inputs').style.display = mode === 'period' ? 'block' : 'none';
+  document.getElementById('recent-inputs').style.display = mode === 'recent' ? 'block' : 'none';
+  if (mode !== 'recent') filters.recentN = null;
+  if (mode !== 'period') { filters.dateFrom = ''; filters.dateTo = ''; }
+  renderStats();
+}
+
+function setRecentN(n, btn) {
+  filters.recentN = n;
+  document.querySelectorAll('[data-filter-n]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const inp = document.getElementById('filter-n-custom');
+  inp.value = '';
+  inp.classList.remove('active-input');
+  renderStats();
+}
+
+function setRecentNCustom(inp) {
+  const n = parseInt(inp.value);
+  document.querySelectorAll('[data-filter-n]').forEach(b => b.classList.remove('active'));
+  if (n > 0) {
+    filters.recentN = n;
+    inp.classList.add('active-input');
+  } else {
+    filters.recentN = null;
+    inp.classList.remove('active-input');
+  }
+  renderStats();
+}
+
 function getFiltered() {
-  return records.filter(r => {
+  // 戦型・ルームフィルター
+  let result = records.filter(r => {
     if (filters.type !== 'all' && r.type !== filters.type) return false;
     if (filters.room !== 'all' && r.room !== filters.room) return false;
     return true;
   });
+  // 期間フィルター（排他）
+  if (filters.period === 'period') {
+    const from = filters.dateFrom;
+    const to = filters.dateTo;
+    if (from) result = result.filter(r => r.date >= from);
+    if (to)   result = result.filter(r => r.date <= to);
+  } else if (filters.period === 'recent' && filters.recentN) {
+    // records は新しい順なので先頭N件を取る
+    const sorted = [...result].sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+    result = sorted.slice(0, filters.recentN);
+  }
+  return result;
 }
 
 function avg(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null; }
