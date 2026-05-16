@@ -305,7 +305,7 @@
       <h3 style="margin-top:14px">MAKA評価ごとの順位統計</h3>
       <div style="overflow-x:auto">
         <table class="corr-table" id="tbl-maka-rank">
-          <thead><tr><th>MAKA</th><th>件数</th><th>平均</th><th>中央値</th><th>最頻値</th><th>標準偏差</th><th>Q1〜Q3</th><th>最小〜最大</th></tr></thead>
+          <thead><tr><th>MAKA</th><th>件数</th><th>平均</th><th>最頻値</th><th>標準偏差</th><th>Q1〜Q3</th><th>最小〜最大</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -313,7 +313,7 @@
       <h3 style="margin-top:14px">順位ごとのMAKA評価統計</h3>
       <div style="overflow-x:auto">
         <table class="corr-table" id="tbl-rank-maka">
-          <thead><tr><th>順位</th><th>件数</th><th>平均MAKA</th><th>中央値</th><th>最頻値</th><th>標準偏差</th><th>Q1〜Q3</th><th>最小〜最大</th></tr></thead>
+          <thead><tr><th>順位</th><th>件数</th><th>平均MAKA</th><th>最頻値</th><th>標準偏差</th><th>Q1〜Q3</th><th>最小〜最大</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -758,14 +758,13 @@ function renderStats() {
       <td class="corr-key"><span class="maka maka-${g[0]}">${g}</span></td>
       <td>${sub.length}</td>
       <td>${avg(rv) !== null ? avg(rv).toFixed(2) : '—'}</td>
-      <td>${median(rv) !== null ? median(rv).toFixed(1) : '—'}</td>
       <td>${mode(rv).join('、')}</td>
       <td>${sd !== null ? sd.toFixed(2) : '—'}</td>
       <td>${q1 !== null ? q1.toFixed(1) + '〜' + q3.toFixed(1) : '—'}</td>
       <td>${mn}〜${mx}</td>
     </tr>`;
   });
-  if (!tbody1.innerHTML) tbody1.innerHTML = '<tr><td colspan="8" class="no-data" style="padding:8px;text-align:center">データなし</td></tr>';
+  if (!tbody1.innerHTML) tbody1.innerHTML = '<tr><td colspan="7" class="no-data" style="padding:8px;text-align:center">データなし</td></tr>';
 
   // 順位→MAKAテーブル
   const tbody2 = document.querySelector('#tbl-rank-maka tbody');
@@ -775,7 +774,6 @@ function renderStats() {
     if (!sub.length) return;
     const mv = sub.map(r => MAKA_VAL[r.maka]);
     const avgM = avg(mv);
-    const medM = median(mv);
     const moMStr = mode(mv).map(v => `<span class="maka maka-${MAKA_FROM_VAL(v)[0]}">${MAKA_FROM_VAL(v)}</span>`).join(' ');
     const sd = stddev(mv);
     const q1 = quantile(mv, 0.25);
@@ -787,14 +785,13 @@ function renderStats() {
       <td class="corr-key"><span class="rank-badge rank-${rk}">${rk}</span></td>
       <td>${sub.length}</td>
       <td>${avgM !== null ? MAKA_FROM_VAL(avgM) + ' (' + avgM.toFixed(2) + ')' : '—'}</td>
-      <td>${medM !== null ? MAKA_FROM_VAL(medM) : '—'}</td>
       <td>${moMStr}</td>
       <td>${sd !== null ? sd.toFixed(2) : '—'}</td>
       <td>${q1 !== null ? fmtMaka(Math.round(q1)) + '〜' + fmtMaka(Math.round(q3)) : '—'}</td>
       <td>${fmtMaka(mn)}〜${fmtMaka(mx)}</td>
     </tr>`;
   });
-  if (!tbody2.innerHTML) tbody2.innerHTML = '<tr><td colspan="8" class="no-data" style="padding:8px;text-align:center">データなし</td></tr>';
+  if (!tbody2.innerHTML) tbody2.innerHTML = '<tr><td colspan="7" class="no-data" style="padding:8px;text-align:center">データなし</td></tr>';
 
   // ルーム別テーブル
   const tbody3 = document.querySelector('#tbl-room tbody');
