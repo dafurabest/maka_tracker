@@ -922,7 +922,7 @@ function renderStats() {
     tbody2.innerHTML += `<tr>
       <td class="corr-key"><span class="rank-badge rank-${rk}">${rk}</span></td>
       <td>${sub.length}</td>
-      <td>${avgM !== null ? MAKA_FROM_VAL(avgM) + ' (' + avgM.toFixed(2) + ')' : '—'}</td>
+      <td>${avgM !== null ? fmtMaka(avgM) + ' (' + avgM.toFixed(2) + ')' : '—'}</td>
       <td>${moMStr}</td>
       <td>${sd !== null ? sd.toFixed(2) : '—'}</td>
       <td>${q1 !== null ? fmtMaka(Math.round(q1)) + '〜' + fmtMaka(Math.round(q3)) : '—'}</td>
@@ -939,11 +939,13 @@ function renderStats() {
     if (!sub.length) return;
     const mv = sub.map(r => MAKA_VAL[r.maka]);
     const rv = sub.map(r => r.rank);
-    const moMStr = mode(mv).map(v => `<span class="maka maka-${MAKA_FROM_VAL(v)[0]}">${MAKA_FROM_VAL(v)}</span>`).join(' ');
+    const fmtMaka3 = v => `<span class="maka maka-${MAKA_FROM_VAL(v)[0]}">${MAKA_FROM_VAL(v)}</span>`;
+    const moMStr = mode(mv).map(v => fmtMaka3(v)).join(' ');
+    const avgMv = avg(mv);
     tbody3.innerHTML += `<tr>
       <td class="corr-key">${rm}</td>
       <td>${sub.length}</td>
-      <td>${avg(mv) !== null ? MAKA_FROM_VAL(avg(mv)) : '—'}</td>
+      <td>${avgMv !== null ? fmtMaka3(avgMv) + ' (' + avgMv.toFixed(2) + ')' : '—'}</td>
       <td>${avg(rv) !== null ? avg(rv).toFixed(2) : '—'}</td>
       <td>${moMStr}</td>
       <td>${mode(rv).join('、')}</td>
@@ -1392,12 +1394,15 @@ function renderTimeslotStats(data) {
     const sub = bySlot[l];
     if (!sub.length) return;
     const mv = sub.map(r => MAKA_VAL[r.maka]);
-    const moStr = mode(mv).map(v => `<span class="maka maka-${MAKA_FROM_VAL(v)[0]}">${MAKA_FROM_VAL(v)}</span>`).join(' ');
+    const fmtM = v => `<span class="maka maka-${MAKA_FROM_VAL(v)[0]}">${MAKA_FROM_VAL(v)}</span>`;
+    const moStr = mode(mv).map(v => fmtM(v)).join(' ');
+    const avgV = avg(mv);
+    const medV = median(mv);
     tbody.innerHTML += `<tr>
       <td class="corr-key">${l}</td>
       <td>${sub.length}</td>
-      <td>${avg(mv) !== null ? MAKA_FROM_VAL(avg(mv)) + ' (' + avg(mv).toFixed(2) + ')' : '—'}</td>
-      <td>${median(mv) !== null ? MAKA_FROM_VAL(median(mv)) : '—'}</td>
+      <td>${avgV !== null ? fmtM(avgV) + ' (' + avgV.toFixed(2) + ')' : '—'}</td>
+      <td>${medV !== null ? fmtM(medV) : '—'}</td>
       <td>${moStr}</td>
     </tr>`;
   });
@@ -1453,12 +1458,15 @@ function renderSessionStats(data) {
     const sub = byN[l];
     if (!sub.length) return;
     const mv = sub.map(r => MAKA_VAL[r.maka]);
-    const moStr = mode(mv).map(v => `<span class="maka maka-${MAKA_FROM_VAL(v)[0]}">${MAKA_FROM_VAL(v)}</span>`).join(' ');
+    const fmtM = v => `<span class="maka maka-${MAKA_FROM_VAL(v)[0]}">${MAKA_FROM_VAL(v)}</span>`;
+    const moStr = mode(mv).map(v => fmtM(v)).join(' ');
+    const avgV = avg(mv);
+    const medV = median(mv);
     tbody.innerHTML += `<tr>
       <td class="corr-key">${l}</td>
       <td>${sub.length}</td>
-      <td>${avg(mv) !== null ? MAKA_FROM_VAL(avg(mv)) + ' (' + avg(mv).toFixed(2) + ')' : '—'}</td>
-      <td>${median(mv) !== null ? MAKA_FROM_VAL(median(mv)) : '—'}</td>
+      <td>${avgV !== null ? fmtM(avgV) + ' (' + avgV.toFixed(2) + ')' : '—'}</td>
+      <td>${medV !== null ? fmtM(medV) : '—'}</td>
       <td>${moStr}</td>
     </tr>`;
   });
